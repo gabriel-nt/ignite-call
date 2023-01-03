@@ -10,6 +10,8 @@ import {
 import { ArrowRight } from 'phosphor-react'
 import { Controller, useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { api } from '../../../lib/axios'
+import { convertTimeStringToMinutes } from '../../../utils/convert-time-string-to-minutes'
 import { getWeekDays } from '../../../utils/getWeekDays'
 
 import { Container, Header } from '../styles'
@@ -36,10 +38,29 @@ const timeIntervalsFormSchema = z.object({
     .transform((intervals) => intervals.filter((interval) => interval.enabled))
     .refine((intervals) => intervals.length > 0, {
       message: 'Você precisa selecionar pelo menos um dia da semana',
-    }),
+    })
+    .transform((intervals) =>
+      intervals.map((interval) => ({
+        weekDay: interval.weekDay,
+        startTimeInMinutes: convertTimeStringToMinutes(interval.startTime),
+        endTimeInMinutes: convertTimeStringToMinutes(interval.endTime),
+      })),
+    )
+    .refine(
+      (intervals) =>
+        intervals.every(
+          (interval) =>
+            interval.endTimeInMinutes - 60 >= interval.startTimeInMinutes,
+        ),
+      {
+        message:
+          'O horário de término deve ser pelo menos 1h distante do ínicio.',
+      },
+    ),
 })
 
-type TimeIntervalsFormData = z.infer<typeof timeIntervalsFormSchema>
+type TimeIntervalsFormInput = z.input<typeof timeIntervalsFormSchema>
+type TimeIntervalsFormOutput = z.output<typeof timeIntervalsFormSchema>
 
 export default function TimeIntervals() {
   const {
@@ -48,7 +69,7 @@ export default function TimeIntervals() {
     handleSubmit,
     watch,
     formState: { isSubmitting, errors },
-  } = useForm({
+  } = useForm<TimeIntervalsFormInput>({
     resolver: zodResolver(timeIntervalsFormSchema),
     defaultValues: {
       intervals: [
@@ -107,8 +128,12 @@ export default function TimeIntervals() {
 
   const intervals = watch('intervals')
 
-  const handleSetTimeIntervals = async (data: TimeIntervalsFormData) => {
-    console.log(data)
+  const handleSetTimeIntervals = async (data: any) => {
+    const { intervals } = data as TimeIntervalsFormOutput
+
+    await api.post('/users/time-intervals', {
+      intervals,
+    })
   }
 
   return (
@@ -166,7 +191,7 @@ export default function TimeIntervals() {
         </IntervalsContainer>
 
         {errors.intervals && (
-          <FormError size="sm">errors.intervals.message</FormError>
+          <FormError size="sm">{errors.intervals.message}</FormError>
         )}
 
         <Button type="submit" disabled={isSubmitting}>
