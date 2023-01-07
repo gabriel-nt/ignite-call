@@ -1,7 +1,9 @@
 import dayjs from 'dayjs'
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { z } from 'zod'
+import { google } from 'googleapis'
 import { prisma } from '../../../../lib/prisma'
+import { getGoogleOAuthToken } from '../../../../lib/google'
 
 const createScheduleBody = z.object({
   name: z.string(),
@@ -62,6 +64,25 @@ export default async function handler(
       observations,
       user_id: user.id,
       date: schedulingDate.toDate(),
+    },
+  })
+
+  const calendar = google.calendar({
+    version: 'v3',
+    auth: await getGoogleOAuthToken(user.id),
+  })
+
+  await calendar.events.insert({
+    calendarId: 'primary',
+    requestBody: {
+      summary: `Ignite Call: ${name}`,
+      description: observations,
+      start: {
+        dateTime: schedulingDate.format(),
+      },
+      end: {
+        dateTime: schedulingDate.add(1, 'hour').format(),
+      },
     },
   })
 
