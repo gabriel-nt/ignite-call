@@ -28,7 +28,7 @@
 - [x] Criação de agendamentos na Agenda do Google
 
 ### 💻 Demonstração
-<img src="https://github.com/gabriel-nt/ignite-call/blob/master/src/assets/scheduling.png" alt="Imagem de demonstração" />
+<img src="https://github.com/gabriel-nt/ignite-call/blob/main/src/assets/scheduling.png" alt="Imagem de demonstração" />
 
 ### ⚙ Pré-requisitos
 
